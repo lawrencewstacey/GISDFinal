@@ -1,0 +1,296 @@
+---
+title: "GISD Final Paper"
+author: "Lawrence Stacey"
+date: "11/25/2019"
+output: pdf_document
+---
+
+## R Markdown
+
+I first read in the data, using a .dta file, and then installed and attached the necessary packages for the analyses, tables, and figures I created.
+
+```
+#Reading in Data#
+
+setwd("~/Box/Academics/SOC8802 - Demography Proseminar/Final Project")
+library(haven)
+gisd <- read_dta("nhis.dta")
+
+#Installing and Attaching Packages#
+
+#install.packages("plyr")
+library(plyr)
+#install.packages("stargazer")
+library(stargazer)
+#install.packages("gmodels")
+library(gmodels)
+#install.packages("labelled")
+library(labelled)
+library(car)
+library(dplyr)
+#install.packages("knitr")
+library(knitr)
+#install.packages("tab")
+library(tab)
+library(rmarkdown)
+library(ggplot2)
+
+#Attaching Data
+attach(gisd)
+```
+
+
+I then created new variables from the raw data, so that I could leave the original data in its form. In each chunk of code, I first looked at the distribution of the original variable, created a new variable and assigned missing values, and then coded the new variable from the original variable, and lastly I assigned value labels so that I could keep track of how the new variables were coded.
+
+```
+#Dependent Variable#
+#Creating New Health - Continuous#
+count(gisd$HEALTH)
+gisd$newhealth <- rep(NA, nrow(gisd))
+var_label(gisd$newhealth) <- "New Health Variable"
+
+for(i in 1:nrow(gisd)){
+  if(gisd$HEALTH[i]==5){gisd$newhealth[i] <- 0
+  } else if(gisd$HEALTH[i]==4) {gisd$newhealth[i] <- 2
+  } else if(gisd$HEALTH[i]==3) {gisd$newhealth[i] <- 3
+  } else if(gisd$HEALTH[i]==2) {gisd$newhealth[i] <- 4
+  } else if(gisd$HEALTH[i]==1) {gisd$newhealth[i] <- 5
+  } else {gisd$newhealth[i] <- NA}
+}
+count(gisd$newhealth)
+val_label(gisd$newhealth, 1) <- "Poor"
+val_label(gisd$newhealth, 2) <- "Fair"
+val_label(gisd$newhealth, 3) <- "Good"
+val_label(gisd$newhealth, 4) <- "Very good"
+val_label(gisd$newhealth, 5) <- "Excellent"
+val_labels(gisd$newhealth)
+count(gisd$newhealth)
+
+
+#Independent Variable#
+#Sexual Orientation#
+count(gisd$SEXORIEN)
+gisd$sexid <- rep(NA, nrow(gisd))
+var_label(gisd$sexid) <- "New Sexual Identity Variable"
+
+for(i in 1:nrow(gisd)){
+  if(gisd$SEXORIEN[i]==2) {gisd$sexid[i] <- 0
+  } else if(gisd$SEXORIEN[i]==1) {gisd$sexid[i] <- 1
+  } else if(gisd$SEXORIEN[i]==3) {gisd$sexid[i] <- 2
+  } else if(gisd$SEXORIEN[i]==4) {gisd$sexid[i] <- 3
+  } else {gisd$sexid[i] <- NA}
+}
+count(gisd$sexid)
+val_label(gisd$sexid, 0) <- "Heterosexual"
+val_label(gisd$sexid, 1) <- "Lesbian or Gay"
+val_label(gisd$sexid, 2) <- "Bisexual"
+val_label(gisd$sexid, 3) <- "Something else"
+val_labels(gisd$sexid)
+
+
+#Control Variables#
+#Female#
+count(gisd$SEX)
+gisd$female <- rep(NA, nrow(gisd))
+var_label(gisd$female) <- "New Female Variable"
+
+for(i in 1:nrow(gisd)){
+  if(gisd$SEX[i]==1) {gisd$female[i] <- 0
+  } else if(gisd$SEX[i]==2) {gisd$female[i] <- 1}
+}
+count(gisd$female)
+val_label(gisd$female, 0) <- "Male"
+val_label(gisd$female, 1) <- "Female"
+val_labels(gisd$female)
+
+
+#Race#
+count(gisd$RACENEW)
+count(gisd$HISPETH)
+gisd$race <- rep(NA, nrow(gisd))
+var_label(gisd$race) <- "New Race Variable"
+
+for(i in 1:nrow(gisd)){
+  if(gisd$RACENEW[i]==10 && gisd$HISPETH[i]==10) {gisd$race[i] <- 0
+  } else if(gisd$RACENEW[i]==20 && gisd$HISPETH[i]==10) {gisd$race[i] <- 1
+  } else if(gisd$HISPETH[i]>19 && gisd$HISPETH[i]<71) {gisd$race[i] <- 2
+  } else if(gisd$RACENEW[i]==40 && gisd$HISPETH[i]==10) {gisd$race[i] <- 3
+  } else if(gisd$RACENEW[i]==30 && gisd$HISPETH[i]==10) {gisd$race[i] <- 3
+  } else if(gisd$RACENEW[i]==50 && gisd$HISPETH[i]==10) {gisd$race[i] <- 3
+  } else if(gisd$RACENEW[i]==60 && gisd$HISPETH[i]==10) {gisd$race[i] <- 3
+  } else {gisd$race[i] <- NA}
+}
+count(gisd$race)
+val_label(gisd$race, 0) <- "White"
+val_label(gisd$race, 1) <- "Black"
+val_label(gisd$race, 2) <- "Latinx"
+val_label(gisd$race, 3) <- "Other"
+val_labels(gisd$race)
+
+
+#Age#
+summary(gisd$AGE)
+gisd$age <- gisd$AGE
+summary(gisd$age)
+
+
+#Marital Status#
+count(gisd$MARSTAT)
+gisd$mstat <- rep(NA, nrow(gisd))
+var_label(gisd$mstat) <- "New Marital Status Variable"
+
+for(i in 1:nrow(gisd)){
+  if(gisd$MARSTAT[i]==10) {gisd$mstat[i] <- 0
+  } else if(gisd$MARSTAT[i]==11) {gisd$mstat[i] <- 0
+  } else if(gisd$MARSTAT[i]==12) {gisd$mstat[i] <- 0
+  } else if(gisd$MARSTAT[i]==13) {gisd$mstat[i] <- 0
+  } else if(gisd$MARSTAT[i]==20) {gisd$mstat[i] <- 1
+  } else if(gisd$MARSTAT[i]==30) {gisd$mstat[i] <- 1
+  } else if(gisd$MARSTAT[i]==40) {gisd$mstat[i] <- 1
+  } else if(gisd$MARSTAT[i]==50) {gisd$mstat[i] <- 2
+  } else {gisd$mstat[i] <- NA}
+}
+count(gisd$mstat)
+val_label(gisd$mstat, 0) <- "Married"
+val_label(gisd$mstat, 1) <- "Widowed, Divorced, or Separated"
+val_label(gisd$mstat, 2) <- "Never Married"
+val_labels(gisd$mstat)
+
+
+#Socioeconomic Status Variables#
+#Total Family Income#
+count(gisd$INCFAM97ON2)
+gisd$familyinc <- rep(NA, nrow(gisd))
+var_label(gisd$familyinc) <- "New Family Income Variable"
+
+for(i in 1:nrow(gisd)){
+  if(gisd$INCFAM97ON2[i]==10) {gisd$familyinc[i] <- 0
+  } else if(gisd$INCFAM97ON2[i]==20) {gisd$familyinc[i] <- 1
+  } else if(gisd$INCFAM97ON2[i]==31) {gisd$familyinc[i] <- 2
+  } else if(gisd$INCFAM97ON2[i]==32) {gisd$familyinc[i] <- 3
+  } else {gisd$familyinc[i] <- NA}
+}
+count(gisd$familyinc)
+val_label(gisd$familyinc, 0) <- "$0 to $34,999"
+val_label(gisd$familyinc, 1) <- "$35,000 to $74,999"
+val_label(gisd$familyinc, 2) <- "$75,000 to $99,999"
+val_label(gisd$familyinc, 3) <- "$100,000 and over"
+val_labels(gisd$familyinc)
+
+
+#Education#
+count(gisd$EDUC)
+gisd$education <- rep(NA, nrow(gisd))
+var_label(gisd$education) <- "New Education Variable"
+
+for(i in 1:nrow(gisd)){
+  if(gisd$EDUC[i]>99 && gisd$EDUC[i]<300) {gisd$education[i] <- 0
+  } else if(gisd$EDUC[i]>299 && gisd$EDUC[i]<400) {gisd$education[i] <- 1
+  } else if(gisd$EDUC[i]>399 && gisd$EDUC[i]<500) {gisd$education[i] <- 2
+  } else if(gisd$EDUC[i]==500) {gisd$education[i] <- 3
+  } else if(gisd$EDUC[i]>500 && gisd$EDUC[i]<604) {gisd$education[i] <- 4
+  } else {gisd$education[i] <- NA}
+}
+count(gisd$education)
+val_label(gisd$education, 0) <- "Less than HS"
+val_label(gisd$education, 1) <- "HS or GED"
+val_label(gisd$education, 2) <- "Some College"
+val_label(gisd$education, 3) <- "Bachelor's Degree"
+val_label(gisd$education, 4) <- "Advanced Degree"
+val_labels(gisd$education)
+
+
+#Year#
+count(gisd$YEAR)
+gisd$year <- rep(NA, nrow(gisd))
+var_label(gisd$year) <- "New Year Variable"
+
+for(i in 1:nrow(gisd)){
+  if(gisd$YEAR[i]==2017) {gisd$year[i] <- 0
+  } else if(gisd$YEAR[i]==2018) {gisd$year[i] <- 1}
+}
+count(gisd$year) 
+val_label(gisd$year, 0) <- "2017"
+val_label(gisd$year, 1) <- "2018"
+val_labels(gisd$year)
+```
+
+
+I then created a data frame (X) with my variables of interest: self-rated health, sexual identity, sex, race, age, year of the survey, marital status, total family income, and education. In doing so, I effectively engaged in "listwise deletion" and only used respondents who had valid information on all of the variables of to be in the models. This ensured that my sample size (N=46,359) was the same across all my regression models. 
+
+```
+#Creating a Data Frame
+X <- subset(gisd, select=c(newhealth,sexid,female,race,age,year,mstat,familyinc,education))
+X <- na.omit(X)
+```
+
+To create my descriptive statistics table, I used the following chunks of code. I first used the stargazer command to produce descriptive information on all of my variables. For the continuous variables, this code worked well since it produced the mean and standard deviation. The following chunks of code were used to see the percentages in each response category, which makes more sense for the categorical variables. For instance, running lines 239 to 241, it will tell us that 96.3% of people were in category 0 for sexual identity, and we can see on line 84 that I assigned those who identified as "straight, that is, not gay or lesbian" as 0. In other words, 96.3% of people were straight/heterosexual. 
+
+```
+#Descriptive Statistics#
+#Self-Rated Health, Age, Family Income, and Education#
+stargazer(X)
+
+#SR Health#
+healthtable<-table(X$newhealth)
+healthtable
+prop.table(healthtable)
+
+#Sexual Identity#
+sexidtable<-table(X$sexid)
+sexidtable
+prop.table(sexidtable)
+
+#Female#
+sextable<-table(X$female)
+sextable
+prop.table(sextable)
+
+#Race#
+racetable<-table(X$race)
+racetable
+prop.table(racetable)
+
+#Year#
+yeartable<-table(X$year)
+yeartable
+prop.table(yeartable)
+
+#Year#
+mstattable<-table(X$mstat)
+mstattable
+prop.table(mstattable)
+```
+
+
+The next lines of code show the models I ran to produce my regression results. In the first model, I predicted self-rated health with an OLS regression with sexual identity and a host of basic demographic controls (sex, race, age, and year). I then added marital status in model 2 as a factor variable. I finally added total family income and education in model 3. The last chunk of code was used to produce the regression table (Table 2) in the paper. 
+
+```
+#Model 1#
+model1 <- lm(newhealth ~ factor(sexid) + female + factor(race) + age + year, data=X)
+summary(model1)
+
+#Model 2#
+model2 <- lm(newhealth ~ factor(sexid) + female + factor(race) + age + year + factor(mstat), data=X)
+summary(model2)
+
+#Model 3#
+model3 <- lm(newhealth ~ factor(sexid) + female + factor(race) + age + year + factor(mstat) + familyinc + education, data=X)
+summary(model3)
+
+#Regression Table#
+stargazer(model1, model2, model3, title="OLS Regression Results", align = TRUE, dep.var.caption = "Dependent Variable: Self-Rated Health", dep.var.labels.include = FALSE, column.labels=c("Model 1","Model 2", "Model 3"), covariate.labels=c("Gay or Lesbian","Bisexual", "Something Else","Female","Black","Latinx", "Other", "Age", "Year", "Divorced/Separated", "Never Married", "Total Family Income", "Education"), omit.stat=c("LL","ser","adj.rsq", "f"), star.cutoffs = c(0.05, 0.01, 0.001), digits=2, model.numbers=FALSE, no.space=TRUE)
+```
+
+Lastly, this is the code that I used to produce the bar chart of Self-Rated Health so that I could visualize how respondents were rating their health. 
+
+```
+#Figure for Self-Rated Health#
+library(ggplot2)
+figure <- ggplot(X, aes(x=newhealth))+ 
+        geom_bar(stat="count", width=0.9, fill="steelblue")+
+        theme_minimal()+
+        ggtitle("Self-Rated Health")+
+        labs(y="Count", x="Self-Rated Health")
+figure
+```
